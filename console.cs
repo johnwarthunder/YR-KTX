@@ -1,75 +1,121 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 
-namespace Tour {
-
-    class Program {
-        static void Main(string[] args) {
-            Console.OutputEncoding = Encoding.UTF8;
-
-            List<Versenyzo> versenyzok = new List<Versenyzo>();
-            foreach (string line in File.ReadLines("tour.csv")) {                
-                if (line.StartsWith("szakasz")) continue;
-                string[] parts = line.Split(";");
-                versenyzok.Add(new Versenyzo(
-
-                    int.Parse(parts[0]),
-                    parts[1],
-                    parts[2],
-                    parts[3],
-                    parts[4]
-                ));
+namespace Tour
+{
+    internal class Feladat
+    {
+        List<Versenyzo> adatok = [];
+        public Feladat()
+        {
+            foreach (var item in File.ReadAllLines("tour.csv",Encoding.UTF8).Skip(1))
+            {
+                string[] resz = item.Split(';');
+                int szakasz = Convert.ToInt32(resz[0]);
+                string ido = resz[1];
+                string nev = resz[2];
+                string nemzetiseg = resz[3];
+                string csapat = resz[4];
+                adatok.Add(new(szakasz, ido, nev, nemzetiseg, csapat));
             }
+        }
 
-            int fifthRoundCount = versenyzok.Count(index => index.szakasz == 5);
-            Console.WriteLine($"4. Feladat: 5-ös szakasz versenyzői: {fifthRoundCount} fő");
+        public void Feladat4()
+        {
+            int eredmeny = adatok.Count(x => x.Szakasz == 5);
+            Console.WriteLine($"4. Feladat: 5-ös szakasz versenyzői: {eredmeny}");
+        }
 
-            var fifthRoundComps = versenyzok.Where(index => index.szakasz == 5).ToList();
-            double averageTimeForAll = fifthRoundComps.Average(index => index.returnTime(index.ido));
-            int overAverageComps = fifthRoundComps.Count(index => index.returnTime(index.ido) > averageTimeForAll);
-            Console.WriteLine($"5. Feladat: Átlag felett: {overAverageComps} fő");
+        public void Feladat5()
+        {
+            double atlag = adatok.Where(x=>x.Szakasz==5).Average(x => x.Masodperc());
+            var eredmeny = adatok.Count(x => x.Masodperc() > atlag && x.Szakasz == 5);
+            Console.WriteLine($"5. Feladat: Átlag felett: {eredmeny} fő");
+        }
 
-            var averageForTeams = versenyzok.GroupBy(index => index.csapat)
-                                            .Select(selectIndex => new { nev = selectIndex.Key, atlag = selectIndex.Average(timeIndex => timeIndex.returnTime(timeIndex.ido)) })
-                                            .OrderBy(x => x.nev);
-
-            Console.WriteLine("6. Feladat: Csapatonkénti átlagos idő:");
-            foreach (var average in averageForTeams) {
-                Console.WriteLine($"{average.nev} : {average.atlag}");
+        public void Feladat6()
+        {
+            Console.WriteLine("6. Feladat: Csapatonkénti átlagos idő");
+            foreach (var item in adatok.OrderBy(x=>x.Csapat).GroupBy(x=>x.Csapat))
+            {
+                Console.WriteLine($"{item.Key}: {item.Average(x=>x.Masodperc()):n1}");
             }
+            {
 
-            Console.WriteLine($"7. feladat: Kitüntetett versenyzők: {versenyzok.Count(index => index.returnAward(index.nemzetiseg, index.ido))} ");
+            }
+        }
 
-            var top10SelectedComp = fifthRoundComps.OrderBy(index => index.returnTime(index.ido)).Take(10);
-            foreach (var index in top10SelectedComp) {
-                Console.WriteLine($"{index.nev}, {index.ido}");
+        public void Feladat7()
+        {
+            var eredmeny = adatok.Count(x=>x.Kituntetes());
+            Console.WriteLine($"7. feladat: Kitüntetett versenyzők: {eredmeny}");
+        }
+
+        public void Feladat8()
+        {
+            Console.WriteLine("8. feladat: Top 10");
+            foreach (var item in adatok.Where(x=>x.Szakasz==5).OrderBy(x=>x.Masodperc()).Take(10))
+            {
+                Console.WriteLine($"{item.Nev}, {item.Ido}");
             }
         }
     }
+}
 
-    class Versenyzo {
-        public int szakasz { get; set; }
-        public string ido { get; set; }
-        public string nev { get; set; }
-        public string nemzetiseg { get; set; }
-        public string csapat { get; set; }
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
+namespace Tour
+{
+    internal class Versenyzo
+    {
         public Versenyzo(int szakasz, string ido, string nev, string nemzetiseg, string csapat)
         {
-            this.szakasz = szakasz;
-            this.ido = ido;
-            this.nev = nev;
-            this.nemzetiseg = nemzetiseg;
-            this.csapat = csapat;
+            Szakasz = szakasz;
+            Ido = ido;
+            Nev = nev;
+            Nemzetiseg = nemzetiseg;
+            Csapat = csapat;
         }
 
-        public int returnTime(string time) {
-            string[] parts = time.Split(":");
-            return int.Parse(parts[0]) * 3600 + int.Parse(parts[1]) * 60 + int.Parse(parts[2]);
-        }
-        public bool returnAward(string competitor, string time)
+        public int Szakasz {  get; set; }
+        public string Ido {  get; set; }
+        public string Nev {  get; set; }
+        public string Nemzetiseg {  get; set; }
+        public string Csapat {  get; set; }
+
+        public int Masodperc()
         {
-            return (competitor == "USA" && returnTime(time) < 10800);
+            string[] resz = Ido.Split(':');
+            return 3600 * Convert.ToInt32(resz[0]) + 60 * Convert.ToInt32(resz[1]) + Convert.ToInt32(resz[2]);
+        }
+
+        public bool Kituntetes()
+        {
+            return Nemzetiseg == "USA" && Masodperc() < 3 * 3600;
         }
     }
-
 }
+
+namespace Tour
+{
+    internal class Program
+    {
+        static void Main(string[] args)
+        {
+            Feladat f = new();
+            f.Feladat4();
+            f.Feladat5();
+            f.Feladat6();
+            f.Feladat7();
+            f.Feladat8();
+        }
+    }
+}
+
